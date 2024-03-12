@@ -1,0 +1,84 @@
+aws ecr create-repository --repository-name flask-app-eks-ecr-demo   --image-scanning-configuration scanOnPush=true --region eu-central-1
+
+aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 178515926936.dkr.ecr.eu-central-1.amazonaws.com/flask-app-eks-ecr-demo
+
+
+
+docker tag flaskapp:v0.0.2 178515926936.dkr.ecr.eu-central-1.amazonaws.com/flask-app-eks-ecr-demo:v0.0.2
+
+docker push 178515926936.dkr.ecr.eu-central-1.amazonaws.com/flask-app-eks-ecr-demo:v0.0.2
+
+aws eks --region eu-central-1 update-kubeconfig --name python-flask-demo
+
+kubectl get svc
+kubectl apply -f serviceacc.yaml
+
+kubectl apply -f deployment.yaml
+
+kubectl get deployments
+
+
+kubectl apply -f service.yaml
+
+kubectl get services
+
+aws eks create-fargate-profile  --fargate-profile-name coredns  --cluster-name python-flask-demo --pod-execution-role-arn arn:aws:iam::178515926936:role/AmazonEKSFargatePodExecutionRole    --selectors namespace=kube-system,labels={k8s-app=kube-dns}  --subnets subnet-041cdd064b3ce0cf7 subnet-05e424252ba42121e subnet-0c4bb3ceb2bae2c34
+
+kubectl patch deployment coredns     -n kube-system     --type json    -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
+
+kubectl patch deployment coredns     -n kube-system     --type json    -p="{\"op\": \"remove\", \"path\": \"/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type\"}"
+
+eksctl utils associate-iam-oidc-provider --cluster python-flask-demo --approve
+
+aws iam create-policy     --policy-name AWSLoadBalancerControllerIAMPolicy    --policy-document file://iam_policy.json
+
+eksctl create iamserviceaccount --cluster=python-flask-demo --namespace=kube-system --name=aws-load-balancer-controller --attach-policy-arn=arn:aws:iam::178515926936:policy/AWSLoadBalancerControllerIAMPolicy1 --override-existing-serviceaccounts --approve
+
+eksctl delete iamserviceaccount --cluster=python-flask-demo --namespace=kube-system aws-load-balancer-controller
+
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller --set clusterName=python-flask-demo --set serviceAccount.create=false --set region=eu-central-1 --set vpcId=vpc-09fc2ab62db4d0762  --set serviceAccount.name=aws-load-balancer-controller -n kube-system
+
+
+https://repost.aws/knowledge-center/eks-alb-ingress-controller-fargate
+
+
+eksctl create iamserviceaccount --cluster=python-flask-demo --namespace=default --name=default --attach-policy-arn=arn:aws:iam::178515926936:policy/AWSLoadBalancerControllerIAMPolicy1 --override-existing-serviceaccounts --approve
+
+
+
+docker build -t flaskapp:v0.0.2 .
+docker run  -p 0.0.0.0:5000:5000 --mount type=bind,source=c:\\Users\\sitecore\\.aws,target=/root/.aws --name flaskapp flaskapp:v0.0.2
+
+
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "eks-fargate-pods.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole",
+            "Condition": {
+                "ArnLike": {
+                    "aws:SourceArn": "arn:aws:eks:eu-central-1:178515926936:fargateprofile/*/*"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::178515926936:oidc-provider/oidc.eks.eu-central-1.amazonaws.com/id/BCFBA0BADA3E03761200FB00FD29EB48"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.eu-central-1.amazonaws.com/id/BCFBA0BADA3E03761200FB00FD29EB48:sub": "system:serviceaccount:default:flasksvc",
+                    "oidc.eks.eu-central-1.amazonaws.com/id/BCFBA0BADA3E03761200FB00FD29EB48:aud": "sts.amazonaws.com"
+                }
+            }
+        }
+    ]
+}
+

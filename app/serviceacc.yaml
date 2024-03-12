@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flasksvc
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::178515926936:role/AmazonEKSFargatePodExecutionRole

@@ -1,0 +1,8 @@
+boto3
+langchain
+psycopg2
+numpy
+python-dotenv
+flask
+langchain_community
+pgvector
